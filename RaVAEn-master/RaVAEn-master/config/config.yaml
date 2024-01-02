@@ -1,5 +1,0 @@
----
-entity: "mlpayloads"
-
-log_dir: "/data/results"
-cache_dir: "/data/cache"
