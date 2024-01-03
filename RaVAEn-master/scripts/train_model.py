@@ -64,7 +64,6 @@ def main(cfg):
         reload_dataloaders_every_epoch=False,
         fast_dev_run=cfg_train['fast_dev_run'],
         resume_from_checkpoint=cfg_train.get('from_checkpoint'),
-        #check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 1) # line repeated?
     )
 
     trainer.tune(module, datamodule=data_module)

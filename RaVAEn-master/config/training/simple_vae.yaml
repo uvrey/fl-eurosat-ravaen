@@ -1,5 +1,5 @@
 ---
-gpus: -1
+gpus: 0
 epochs: 400
 grad_batches: 1
 distr_backend: 'dp'

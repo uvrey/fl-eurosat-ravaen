@@ -1,139 +1,114 @@
-from typing import Optional
-from pathlib import Path
+import argparse
+from collections import OrderedDict
+
+from pytorch_lightning import Trainer, loggers, seed_everything
+from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.plugins import DDPPlugin
+
+import pytorch_lightning as pl
+
+import torch
+
+from models.simple_vae import SimpleVAE
 
 import flwr as fl
-import torch
-from torch.utils.data import DataLoader
-from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesIns, GetPropertiesRes, GetParametersIns, \
-                        GetParametersRes, Status, Code, parameters_to_ndarrays, ndarrays_to_parameters
+import hydra
 
-from network import Net, train, test
-
-
-from dataset_utils import get_dataset
-
-
-def get_dataloader(path_to_data: str, cid: str, partition: str, batch_size: int):
-    """Generates trainset/valset object and returns appropiate dataloader."""
-    dataset = get_dataset(Path(path_to_data), cid, partition)
-    return DataLoader(dataset, batch_size=batch_size, pin_memory=True,
-                      shuffle=(partition == "train"))
-
+from visualisation_callback import VisualisationCallback
 
 class RaVAEnClient(fl.client.Client):
-    def __init__(self, cid: str, fed_data_dir: str, log_progress: bool = False):
-        """
-        Creates a client for training `simpleVAE` on World Floods Data.
+    def __init__(self,
+                 trainloader,
+                 valloader,
+                 cid,
+                 input_shape,
+                 config) -> None:
+        super().__init__()
 
-        Args:
-            cid: A unique ID given to the client (typically a number)
-            fed_data_dir: A path to a partitioned dataset
-            log_progress: Controls whether clients log their progress
-        """
-        self.cid = cid
-        self.data_dir = fed_data_dir
-        self.properties = {"tensor_type": "torch.Tensor"}
-        self.log_progress = log_progress
+        self.cid = cid # client ID
+        self.config = config # config file from main.py
         
-        # Initilise the `net`` variable to `None`
-        self.net = None
+        self.trainloader = trainloader
+        self.valloader = valloader
         
-        # determine device
+        # define the model - SimpleVAE
+        self.model = SimpleVAE(input_shape=input_shape, **config['module']['model_cls_args'])
+        
+        # use GPU if available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        
-    def get_properties(self):
-        return GetPropertiesRes(properties=self.properties)
-    
+
+    # TODO: Check if need to separate encoder and decoder params
     def get_parameters(self):
-        if self.net is None:
-            self.net = Net()
-        return GetParametersRes(status=Status(Code.OK, ""), parameters=ndarrays_to_parameters(self.net.get_weights()))
+        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
-class CifarClient(fl.client.Client):
-    def __init__(self, cid: str, fed_data_dir: str, log_progress: bool = False):
-        """
-        Creates a client for training `network.Net` on CIFAR-10.
-
-        Args:
-            cid: A unique ID given to the client (typically a number)
-            fed_data_dir: A path to a partitioned dataset
-            log_progress: Controls whether clients log their progress
-        """
-        self.cid = cid
-        self.data_dir = fed_data_dir
-        self.properties = {"tensor_type": "numpy.ndarray"}
-        self.log_progress = log_progress
-        # Initilise the `net`` variable to `None`
-        self.net = None
-
-        # determine device
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    def get_properties(self, ins: GetPropertiesIns):
-        return GetPropertiesRes(properties=self.properties)
-
-    def get_parameters(self, ins: GetParametersIns):
-        if self.net is None:
-            self.net = Net()
-        return GetParametersRes(status=Status(Code.OK, ""), parameters=ndarrays_to_parameters(self.net.get_weights()))
-
+    # TODO: Check if need to separate encoder and decoder params
     def set_parameters(self, parameters):
-        if self.net is None:
-            self.net = Net()
-        self.net.set_weights(parameters_to_ndarrays(parameters))
+        params_dict = zip(self.model.state_dict().keys(), parameters)
+        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+        self.model.load_state_dict(state_dict, strict=True)
+    
+    def fit(self, parameters):
+        
+        self.set_parameters(parameters)
+            
+        cfg_train = self.config['training']
+        
+        logger = loggers.WandbLogger(save_dir=self.config['log_dir'], name=self.config,
+                                    project=self.config['project'], entity=self.config['entity'])
+        
+        callbacks = [
+            VisualisationCallback(),
+            LearningRateMonitor(),
+            ModelCheckpoint(
+                save_last=True,
+                save_top_k=-1,  # -1 keeps all, # << 0 keeps only last ....
+                filename='epoch_{epoch:02d}-step_{step}',
+                auto_insert_metric_name=False)
+            ]
 
-    def fit(self, fit_params: FitIns) -> FitRes:
-        # Instantiate model (best practise)
-        self.net = Net()
-        # Process incoming request to train
-        batch_size = fit_params.config["batch_size"]
-        num_iterations = fit_params.config["num_iterations"]
-        self.set_parameters(fit_params.parameters)
+        plugins = []
+        if cfg_train.get('distr_backend') == 'ddp':
+            plugins.append(DDPPlugin(find_unused_parameters=False))
+        
+        trainer = pl.Trainer(
+            deterministic=True,
+            gpus=cfg_train['gpus'],
+            logger=logger,
+            callbacks=callbacks,
+            plugins=plugins,
+            profiler='simple',
+            max_epochs=cfg_train['epochs'],
+            accumulate_grad_batches=cfg_train['grad_batches'],
+            accelerator=cfg_train.get('distr_backend'),
+            precision=16 if cfg_train['use_amp'] else 32,
+            auto_scale_batch_size=cfg_train.get('auto_batch_size'),
+            auto_lr_find=cfg_train.get('auto_lr', False),
+            check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 10),
+            reload_dataloaders_every_epoch=False,
+            fast_dev_run=cfg_train['fast_dev_run'],
+            resume_from_checkpoint=cfg_train.get('from_checkpoint')
+        )
+        
+        trainer.fit(self.model, self.train_loader, self.val_loader)
 
-        # Initialise data loader
-        trainloader = get_dataloader(
-            path_to_data=self.data_dir,
-            cid=self.cid,
-            partition="train",
-            batch_size=batch_size)
+        return self.get_parameters(config={}), len(self.trainloader), {}
+        
+    def evaluate(self, parameters):
+        self.set_parameters(parameters)
 
-        # num_iterations = None special behaviour: train(...) runs for a single epoch, however many updates it may be
-        num_iterations = num_iterations or len(trainloader)
+        trainer = pl.Trainer()
+        results = trainer.test(self.model, self.test_loader)
+        loss = results[0]["test_loss"]
+        accuracy = results[0]["accuracy"]
 
-        # Train the model
-        print(f"Client {self.cid}: training for {num_iterations} iterations/updates")
-        self.net.to(self.device)
-        train_loss, train_acc, num_examples = \
-            train(self.net, trainloader, device=self.device,
-                  num_iterations=num_iterations, log_progress=self.log_progress)
-        print(f"Client {self.cid}: training round complete, {num_examples} examples processed")
+        return loss, len(self.testloader), {"accuracy": accuracy}
+    
 
-        # Return training information: model, number of examples processed and metrics
-        return FitRes(
-            status=Status(Code.OK, ""),
-            parameters=self.get_parameters(fit_params.config).parameters,
-            num_examples=num_examples,
-            metrics={"loss": train_loss, "accuracy": train_acc})
-
-    def evaluate(self, eval_params: EvaluateIns) -> EvaluateRes:
-        # Process incoming request to evaluate
-        batch_size = eval_params.config["batch_size"]
-        self.set_parameters(eval_params.parameters)
-
-        # Initialise data loader
-        valloader = get_dataloader(
-            path_to_data=self.data_dir,
-            cid=self.cid,
-            partition="val",
-            batch_size=batch_size)
-
-        # Evaluate the model
-        self.net.to(self.device)
-        loss, accuracy, num_examples = test(self.net, valloader, device=self.device, log_progress=self.log_progress)
-
-        print(f"Client {self.cid}: evaluation on {num_examples} examples: loss={loss:.4f}, accuracy={accuracy:.4f}")
-        # Return evaluation information
-        return EvaluateRes(
-            status=Status(Code.OK, ""),
-            loss=loss, num_examples=num_examples,
-            metrics={"accuracy": accuracy})
+def generate_client_fn(trainloaders, valloaders, input_shape, cfg):
+    def client_fn(cid: str):
+        return RaVAEnClient(trainloader=trainloaders[int(cid)], 
+                            valloader=valloaders[int(cid)], 
+                            input_shape=input_shape, 
+                            config=cfg)
+    return client_fn

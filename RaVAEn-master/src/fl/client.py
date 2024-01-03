@@ -21,8 +21,7 @@ class RaVAEnClient(fl.client.Client):
                  model,
                  trainloader,
                  valloader,
-                 cid,
-                 num_classes) -> None:
+                 cid) -> None:
         super().__init__()
 
         self.cid = cid
@@ -90,17 +89,6 @@ def _set_parameters(model, parameters):
     params_dict = zip(model.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
     model.load_state_dict(state_dict, strict=True)
-
-"""
-Generate a RaVAEn client
-"""
-def generate_client_fn(trainloaders, valloaders, num_classes):
-    def client_fn(cid: str):
-        return RaVAEnClient(trainloader=trainloaders[int(cid)],
-                            valloader=valloaders[int(cid)],
-                            num_classes=num_classes
-                            )
-    return client_fn
 
 
 def main() -> None:

@@ -1,0 +1,5 @@
+- +dataset=alpha_multiscene_tiny
+- +training=simple_vae
+- +module=deeper_vae
+- +normalisation=log_scale
+- +channels=high_res

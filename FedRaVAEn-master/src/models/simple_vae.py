@@ -4,7 +4,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 
-from base_vae import BaseVAE
+from .base_vae import BaseVAE
 
 class SimpleVAE(BaseVAE):
 

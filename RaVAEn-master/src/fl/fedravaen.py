@@ -8,7 +8,11 @@ from torch.utils.data import random_split, DataLoader
 # from flwr_datasets import FederatedDataset
 
 from pytorch_lightning import LightningDataModule, seed_everything
+from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
+
+import flwr as fl
 
 import hydra
 
@@ -16,6 +20,7 @@ from src.utils import load_obj, deepconvert
 from src.data.datamodule import ParsedDataModule
 from src.callbacks.visualisation_callback import VisualisationCallback
 from src.models.ae_vae_models import simple_vae
+from src.fl.client import generate_client_fn
 
 def prepare_dataset(datamodule: LightningDataModule, 
                     batch_size: int,
@@ -63,7 +68,7 @@ def prepare_dataset(datamodule: LightningDataModule,
 def main(cfg):
     """Centralized training."""
 
-    # hydra load and create config     
+    # hydra load and create config, set output dir   
     seed_everything(42, workers=True)
 
     cfg = deepconvert(cfg)
@@ -94,38 +99,55 @@ def main(cfg):
             auto_insert_metric_name=False)
     ]
     
-    # Load RaVAEn data
+    # Load RaVAEn dataset
     train_loader, val_loader, test_loader = prepare_dataset(datamodule=data_module,
                                                             batch_size=32,
-                                                            num_partitions=10)
-
-    # Load model (using SimpleVAE for now)
-    model = simple_vae.SimpleVAE()
-
-    # Train
-    trainer = pl.Trainer(   max_epochs=5,
-                            deterministic=True,
-                            gpus=cfg_train['gpus'],
-                            logger=logger,
-                            callbacks=callbacks,
-                            plugins=plugins,
-                            profiler='simple',
-                            max_epochs=cfg_train['epochs'],
-                            accumulate_grad_batches=cfg_train['grad_batches'],
-                            accelerator=cfg_train.get('distr_backend'),
-                            precision=16 if cfg_train['use_amp'] else 32,
-                            auto_scale_batch_size=cfg_train.get('auto_batch_size'),
-                            auto_lr_find=cfg_train.get('auto_lr', False),
-                            check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 10),
-                            reload_dataloaders_every_epoch=False,
-                            fast_dev_run=cfg_train['fast_dev_run'],
-                            resume_from_checkpoint=cfg_train.get('from_checkpoint'),    
-                            )
+                                                            num_partitions=100)
     
-    trainer.fit(model, train_loader, val_loader)
+    # Define clients
+    client_fn = generate_client_fn(train_loader, val_loader)
+    
+    
+    # Define FL strategy
+    strategy = fl.server.strategy.FedAvg(fraction_fit=0.001,
+                                         min_fit_clients=20
+                                         fraction_evaluate=0.00001,
+                                         min_evaluate_clients=2
+                                         min_available_clients=100 # equal to num_partitions
+                                         on_fit_config_fn=
+                                         )
+    
+    # Start simulation
+    
+    # Save results
+    
+    # # Load model (using SimpleVAE for now)
+    # model = simple_vae.SimpleVAE()
 
-    # Test
-    trainer.test(model, test_loader)
+    # # Train
+    # trainer = pl.Trainer(   max_epochs=5,
+    #                         deterministic=True,
+    #                         gpus=cfg_train['gpus'],
+    #                         logger=logger,
+    #                         callbacks=callbacks,
+    #                         plugins=plugins,
+    #                         profiler='simple',
+    #                         max_epochs=cfg_train['epochs'],
+    #                         accumulate_grad_batches=cfg_train['grad_batches'],
+    #                         accelerator=cfg_train.get('distr_backend'),
+    #                         precision=16 if cfg_train['use_amp'] else 32,
+    #                         auto_scale_batch_size=cfg_train.get('auto_batch_size'),
+    #                         auto_lr_find=cfg_train.get('auto_lr', False),
+    #                         check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 10),
+    #                         reload_dataloaders_every_epoch=False,
+    #                         fast_dev_run=cfg_train['fast_dev_run'],
+    #                         resume_from_checkpoint=cfg_train.get('from_checkpoint'),    
+    #                         )
+    
+    # trainer.fit(model, train_loader, val_loader)
+
+    # # Test
+    # trainer.test(model, test_loader)
 
 
 if __name__ == "__main__":

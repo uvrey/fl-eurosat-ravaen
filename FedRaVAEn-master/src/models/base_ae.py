@@ -3,7 +3,7 @@ from torch import Tensor
 from torch.nn import functional as F
 from typing import List, Any, Dict
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class BaseAE(BaseModel):
     def __init__(self, visualisation_channels):
