@@ -12,17 +12,17 @@ train:
   folder_filter:
     - "I:0:-1"
 
-  dataset_cls: 'dataset.LocationDataset'
+  dataset_cls: 'src.data.dataset.LocationDataset'
   dataset_cls_args:
-    tiling_strategy_cls: 'tiling_strategy.TilingStrategyFullGrid'
+    tiling_strategy_cls: 'src.data.tiling_strategy.TilingStrategyFullGrid'
     tiling_strategy_args:
       window_size: ${dataset.window_size}
       overlap: [0, 0]
 
     dataset_specs:
-      - dataset.SingleFolderImageDataset:
+      - src.data.dataset.SingleFolderImageDataset:
           folder_path: 'S2'
-          filter_cls: 'filters.SliceFilter'
+          filter_cls: 'src.data.filters.SliceFilter'
           filter_args:
             f_slice: ':'
 
@@ -40,17 +40,17 @@ valid:
   folder_filter:
     - "I:-1:"
 
-  dataset_cls: 'dataset.LocationDataset'
+  dataset_cls: 'src.data.dataset.LocationDataset'
   dataset_cls_args:
-    tiling_strategy_cls: 'tiling_strategy.TilingStrategyFullGrid'
+    tiling_strategy_cls: 'src.data.tiling_strategy.TilingStrategyFullGrid'
     tiling_strategy_args:
       window_size: ${dataset.window_size}
       overlap: [0, 0]
 
     dataset_specs:
-      - dataset.SingleFolderImageDataset:
+      - src.data.dataset.SingleFolderImageDataset:
           folder_path: 'S2'
-          filter_cls: 'filters.SliceFilter'
+          filter_cls: 'src.data.filters.SliceFilter'
           filter_args:
             f_slice: '0::4'
 
@@ -66,17 +66,17 @@ test:
   folder_filter:
     - "I:-1:"
 
-  dataset_cls: 'dataset.LocationDataset'
+  dataset_cls: 'src.data.dataset.LocationDataset'
   dataset_cls_args:
-    tiling_strategy_cls: 'tiling_strategy.TilingStrategyFullGrid'
+    tiling_strategy_cls: 'src.data.tiling_strategy.TilingStrategyFullGrid'
     tiling_strategy_args:
       window_size: ${dataset.window_size}
       overlap: [0, 0]
 
     dataset_specs:
-      - dataset.SingleFolderImageDataset:
+      - src.data.dataset.SingleFolderImageDataset:
           folder_path: 'S2'
-          filter_cls: 'filters.SliceFilter'
+          filter_cls: 'src.data.filters.SliceFilter'
           filter_args:
             f_slice: '-1:'
 
