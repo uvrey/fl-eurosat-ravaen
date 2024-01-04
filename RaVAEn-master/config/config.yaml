@@ -1,5 +1,5 @@
 ---
 entity: "mlpayloads"
 
-log_dir: "/data/results"
-cache_dir: "/data/cache"
+log_dir: "/home/lucap/l46/l46-project/RaVAEn-master/outputs/results"
+cache_dir: "/home/lucap/l46/l46-project/RaVAEn-master/outputs/cache"

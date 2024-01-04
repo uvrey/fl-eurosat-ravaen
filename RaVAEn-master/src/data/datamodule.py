@@ -16,7 +16,7 @@ class ParsedDataModule(LightningDataModule):
     Main datamodule class. Given a configuration dict, it will create
     dynamically the datasets and dataloaders.
 
-    The datamodule includes a chaching mechanism to save in memory (pickle) an
+    The datamodule includes a caching mechanism to save in memory (pickle) an
     instance and load it in another script. This is helpful for its usage if
     its creation is a long process or to use it from jupyter notebooks.
     """
