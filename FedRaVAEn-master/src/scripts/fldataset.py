@@ -10,9 +10,9 @@ def prepare_dataset(datamodule: LightningDataModule,
                     val_ratio: float = 0.1,
                     random_seed: int = 2024):
     
-    train_set = datamodule.train_ds
-    #val_set = datamodule.val_ds
-    test_set = datamodule.test_ds
+    # TODO Change this to extract the training set from RaVAEn dataset    
+    train_set = datamodule.train_ds.datasets[2] # the 3rd dataset in the sequence has most of the samples
+    test_set = datamodule.test_ds.datasets[0]
     
     # number of images per partition
     num_images = datamodule.len_train_ds // num_partitions

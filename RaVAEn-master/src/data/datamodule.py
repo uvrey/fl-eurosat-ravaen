@@ -62,10 +62,13 @@ class ParsedDataModule(LightningDataModule):
     @staticmethod
     def _len(ds):
         if isinstance(ds, list):
+            #print("This dataset is a list")
             length = 0
             for d in ds:
                 length += len(d)
         else:
+            #print("This dataset is NOT a list. It's a sequence of LocationDataset, length of datasets[0] is:")
+            #print(len(ds.datasets))
             length = len(ds)
         return length
 
@@ -123,7 +126,7 @@ class ParsedDataModule(LightningDataModule):
 
     @staticmethod
     def _make_dataloader(dataset, config):
-        if not config.get('keep_separate', False):
+        if config.get('keep_separate', False): # used to be not if not config.get('keep_separate', False):
             return DataLoader(
                 dataset,
                 batch_size=config['batch_size'],

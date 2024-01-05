@@ -1,7 +1,6 @@
 import torch
 from torch import optim
 from src.utils import load_obj
-
 import pytorch_lightning as pl
 
 
