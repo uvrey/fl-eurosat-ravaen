@@ -23,7 +23,6 @@ class TiledDataset(Dataset):
         :return: a list of sliced items, one for every dataset, sliced in the
                  same window position
         """
-
         nosspi = self.tiling_strategy.number_of_spatial_sample_per_image
 
         window_idx = idx % nosspi

@@ -6,9 +6,10 @@ import torch
 from torch.utils.data import Dataset
 import kornia
 
-from src.scripts.utils import load_obj, rasterio_open, rasterio_get_sizes, rasterio_get_descriptors, SampleShape
+from .utils import rasterio_open, rasterio_get_sizes, rasterio_get_descriptors, SampleShape
+from src.utils import load_obj
 from src.data.tiling_strategy import TilingStrategyDummy
-from filters import NoFilter
+from src.data.filters import NoFilter
 
 
 class TiledDataset(Dataset):

@@ -14,7 +14,7 @@ from src.models.ae_vae_models.simple_vae import SimpleVAE
 import flwr as fl
 import hydra
 
-from visualisation_callback import VisualisationCallback
+from src.callbacks.visualisation_callback import VisualisationCallback
 
 class RaVAEnClient(fl.client.Client):
     def __init__(self,

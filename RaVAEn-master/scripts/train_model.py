@@ -33,13 +33,14 @@ def main(cfg):
     training_set = data_module.train_ds.datasets[2] # the 3rd dataset in the sequence has most of the samples
     test_set = data_module.test_ds.datasets[0]
     
+    # (12190, 1) -> (10, 32, 32)
+    
     print("Datamodule created!")
     print(f"Training set length: {len(training_set)}")
     print(f"Test set length: {len(test_set)}")
     
     #print("\nFirst element in training set: ")
     #print(training_set[0][0].size())
-
 
     # callbacks = [
     #     VisualisationCallback(),

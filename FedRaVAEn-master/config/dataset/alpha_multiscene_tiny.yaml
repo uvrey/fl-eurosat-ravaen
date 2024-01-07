@@ -3,8 +3,8 @@
 data_module_name: "alpha_multiscene"
 
 # Root directory for train, val and test data, nested in folders inside this location
-# root_folder: "/data/local/worldfloods_change_no_duplicates/train"
-root_folder: "/home/lucap/l46/l46-project/FedRaVAEn-master/data/train_minisubset"
+root_folder: "/data/local/worldfloods_change_no_duplicates/train"
+#root_folder: "/home/lucap/l46/l46-project/FedRaVAEn-master/data/train_minisubset"
 
 window_size: [32, 32]
 

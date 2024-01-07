@@ -7,7 +7,8 @@ from torch.utils.data import DataLoader, ConcatDataset
 from pytorch_lightning import LightningDataModule
 from torch.utils.data.dataset import Dataset
 
-from utils import load_obj, filter_pathlist, deep_compare
+from src.utils import load_obj
+from .utils import filter_pathlist, deep_compare
 
 
 class ParsedDataModule(LightningDataModule):
@@ -61,10 +62,13 @@ class ParsedDataModule(LightningDataModule):
     @staticmethod
     def _len(ds):
         if isinstance(ds, list):
+            #print("This dataset is a list")
             length = 0
             for d in ds:
                 length += len(d)
         else:
+            #print("This dataset is NOT a list. It's a sequence of LocationDataset, length of datasets[0] is:")
+            #print(len(ds.datasets))
             length = len(ds)
         return length
 
@@ -122,7 +126,7 @@ class ParsedDataModule(LightningDataModule):
 
     @staticmethod
     def _make_dataloader(dataset, config):
-        if not config.get('keep_separate', False):
+        if config.get('keep_separate', False): # used to be not if not config.get('keep_separate', False):
             return DataLoader(
                 dataset,
                 batch_size=config['batch_size'],
@@ -165,9 +169,7 @@ class ParsedDataModule(LightningDataModule):
             print(f'Datamodule {self.data_module_name} already in cache, not saving')
 
     @staticmethod
-    def load_or_create(cfg, cache_dir, prompt_for_input=False):
-        name = cfg['data_module_name']
-        print(f'Creating datamodule with name {name}')
+    def load_or_create(cfg, cache_dir, prompt_for_input=True):
         datamodule = ParsedDataModule.load(cfg['data_module_name'], cache_dir)
         
         # NEVER ASK FOR PROMPT, it caused too many mixups already... always recreate, save for logs sake

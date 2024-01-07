@@ -1,7 +1,7 @@
 import kornia
 from typing import List, Dict
 import torch
-from src.scripts.utils import load_obj
+from src.utils import load_obj
 
 class Normaliser:
     def __init__(self, image_names: List[str], **kwargs):
