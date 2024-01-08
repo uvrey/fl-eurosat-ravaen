@@ -14,7 +14,6 @@ config_fit:
   momentum: 0.9
   local_epochs: 10
 
-
 # RaVAEn setup
-log_dir: "/home/lucap/l46/l46-project/RaVAEn-master/outputs/results"
-cache_dir: "/home/lucap/l46/l46-project/RaVAEn-master/outputs/cache"
+log_dir: "/home/josie/l46/l46-project/RaVAEn-master/outputs/results"
+cache_dir: "/home/josie/l46/l46-project/RaVAEn-master/outputs/cache"

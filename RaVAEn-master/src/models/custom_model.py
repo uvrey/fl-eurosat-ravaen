@@ -52,6 +52,14 @@ class SimpleVAEModel(nn.Module):
                                output_padding=1),
         )
 
+        # TODO: Check if need to separate encoder and decoder params
+    def get_parameters(self, config):
+        print(" GETTING THE PARAMETERS!")
+        param = [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+        print(param[0])
+        print("------------------------------")
+        return param
+
     def encode(self, input: Tensor) -> List[Tensor]:
         """
         Encodes the input by passing through the encoder network
@@ -166,3 +174,12 @@ class SimpleVAEModel(nn.Module):
     def _visualisation_labels(self):
         return ["Input", "Reconstruction", "Rec error"]
     
+
+## Flower functions
+def get_parameters(model) -> List[np.ndarray]:
+    return [val.cpu().numpy() for _, val in model.state_dict().items()]
+
+def set_parameters(model, parameters: List[np.ndarray]):
+    params_dict = zip(model.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+    net.load_state_dict(state_dict, strict=True)

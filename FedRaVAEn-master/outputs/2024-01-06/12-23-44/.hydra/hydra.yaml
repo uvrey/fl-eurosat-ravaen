@@ -129,12 +129,12 @@ hydra:
         exclude_keys: []
   runtime:
     version: 1.1.0
-    cwd: /home/lucap/l46/l46-project/FedRaVAEn-master
+    cwd: /home/josie/l46/l46-project/FedRaVAEn-master
     config_sources:
     - path: hydra.conf
       schema: pkg
       provider: hydra
-    - path: /home/lucap/l46/l46-project/FedRaVAEn-master/config
+    - path: /home/josie/l46/l46-project/FedRaVAEn-master/config
       schema: file
       provider: main
     - path: ''

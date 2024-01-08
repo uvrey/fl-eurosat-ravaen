@@ -1,10 +1,24 @@
 from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch import Tensor
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, random_split
+from torchvision.datasets import CIFAR10
+from typing import List, Any, Dict, Tuple
+
+import flwr as fl
+
+from collections import OrderedDict
 
 from pytorch_lightning import loggers
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
-
 import pytorch_lightning as pl
 
 import torch
@@ -21,113 +35,48 @@ from torch import nn, Tensor
 import torch
 from torch.nn import functional as F
 from typing import List, Any, Dict, Tuple
-#####################################
+import numpy as np
 
 
-class RaVAEnClient(fl.client.Client):
-    def __init__(self,
-                 trainloader,
-                 valloader,
-                 cid,
-                 input_shape,
-                 latent_dim,
-                 visualisation_channels,
-                 cfg_train) -> None:
-        super().__init__()
+DEVICE = torch.device("cpu")  # Try "cuda" to train on GPU
+print(
+    f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}"
+)
 
-        self.cid = cid # client ID
-        self.cfg_train = cfg_train # config file from main.py
-        
+class RaVAENClient(fl.client.NumPyClient):
+    def __init__(self, cid, model, trainloader, valloader):
+        self.cid = cid
+        self.net = model
         self.trainloader = trainloader
         self.valloader = valloader
-        
-        # define the model - SimpleVAE
-        self.model = SimpleVAEModel(input_shape=input_shape, latent_dim=latent_dim, visualisation_channels=visualisation_channels)
-        
-        # use GPU if available
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # TODO: Check if need to separate encoder and decoder params
-    def get_parameters(self):
-        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+    def get_parameters(self, config):
+        print(f"[Client {self.cid}] get_parameters")
+        return get_parameters(self.net)
 
-    # TODO: Check if need to separate encoder and decoder params
-    def set_parameters(self, parameters):
-        params_dict = zip(self.model.state_dict().keys(), parameters)
-        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        self.model.load_state_dict(state_dict, strict=True)
-    
-    def fit(self, parameters):
-        
-        self.set_parameters(parameters)
-        
-        #logger = loggers.WandbLogger(save_dir=self.config['log_dir'], name=self.config,
-        #                            project=self.config['project'], entity=self.config['entity'])
-        
-        # callbacks = [
-        #     VisualisationCallback(),
-        #     LearningRateMonitor(),
-        #     ModelCheckpoint(
-        #         save_last=True,
-        #         save_top_k=-1,  # -1 keeps all, # << 0 keeps only last ....
-        #         filename='epoch_{epoch:02d}-step_{step}',
-        #         auto_insert_metric_name=False)
-        #     ]
+    def fit(self, parameters, config):
+        print(f"[Client {self.cid}] fit, config: {config}")
+        set_parameters(self.net, parameters)
+        train(self.net, self.trainloader, epochs=1)
+        return get_parameters(self.net), len(self.trainloader), {}
 
-        # plugins = []
-        # if cfg_train.get('distr_backend') == 'ddp':
-        #     plugins.append(DDPPlugin(find_unused_parameters=False))
-        
-        # TODO: Set these parameters based on the flwr on_fit_config_fn         
-        trainer = pl.Trainer(
-            deterministic=True,
-            gpus=self.cfg_train['gpus'],
-            # logger=logger,
-            # callbacks=callbacks,
-            # plugins=plugins,
-            profiler='simple',
-            max_epochs=self.cfg_train['epochs'],
-            accumulate_grad_batches=self.cfg_train['grad_batches'],
-            accelerator=self.cfg_train.get('distr_backend'),
-            precision=16 if self.cfg_train['use_amp'] else 32,
-            auto_scale_batch_size=self.cfg_train.get('auto_batch_size'),
-            auto_lr_find=self.cfg_train.get('auto_lr', False),
-            check_val_every_n_epoch=self.cfg_train.get('check_val_every_n_epoch', 10),
-            reload_dataloaders_every_epoch=False,
-            fast_dev_run=self.cfg_train['fast_dev_run'],
-            resume_from_checkpoint=self.cfg_train.get('from_checkpoint')
-        )
-        
-        trainer.fit(self.model, self.train_loader, self.val_loader)
+    def evaluate(self, parameters, config):
+        print(f"[Client {self.cid}] evaluate, config: {config}")
+        set_parameters(self.net, parameters)
+        loss, accuracy = test(self.net, self.valloader)
+        return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
-        return self.get_parameters(), len(self.trainloader), {}
-        
-    def evaluate(self, parameters):
-        self.set_parameters(parameters)
-
-        trainer = pl.Trainer()
-        results = trainer.test(self.model, self.test_loader)
-        loss = results[0]["test_loss"]
-        accuracy = results[0]["accuracy"]
-
-        return loss, len(self.testloader), {"accuracy": accuracy}
-    
-
-def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, visualisation_channels, cfg_train):
-    def client_fn(cid: str):
-        return RaVAEnClient(trainloader=trainloaders[int(cid)], 
-                            valloader=valloaders[int(cid)], 
-                            input_shape=input_shape,
-                            latent_dim=latent_dim,
-                            visualisation_channels=visualisation_channels,
-                            cfg_train=cfg_train)
+def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_channels, fl_config):
+    def client_fn(cid: str) -> RaVAENClient:
+        model = SimpleVAEModel(input_shape, latent_dim, vis_channels).to(DEVICE)
+        return RaVAENClient(cid = cid,
+                    model = model,
+                    trainloader=trainloaders[int(cid)], 
+                    valloader=valloaders[int(cid)], 
+                    )
     return client_fn
 
-"""
-Summarisation of RaVAEn model outlines
-"""
 class SimpleVAEModel(nn.Module):
-
     def __init__(self,
                  input_shape: Tuple[int],
                  latent_dim: int,
@@ -285,3 +234,51 @@ class SimpleVAEModel(nn.Module):
     def _visualisation_labels(self):
         return ["Input", "Reconstruction", "Rec error"]
     
+
+def get_parameters(net) -> List[np.ndarray]:
+    return [val.cpu().numpy() for _, val in net.state_dict().items()]
+
+def set_parameters(net, parameters: List[np.ndarray]):
+    params_dict = zip(net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+    net.load_state_dict(state_dict, strict=True)
+
+def train(net, trainloader, epochs: int):
+    """Train the network on the training set."""
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(net.parameters())
+    net.train()
+    for epoch in range(epochs):
+        correct, total, epoch_loss = 0, 0, 0.0
+        for images, labels in trainloader:
+            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            optimizer.zero_grad()
+            outputs = net(images)
+            loss = criterion(net(images), labels)
+            loss.backward()
+            optimizer.step()
+            # Metrics
+            epoch_loss += loss
+            total += labels.size(0)
+            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+        epoch_loss /= len(trainloader.dataset)
+        epoch_acc = correct / total
+        print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
+
+
+def test(net, testloader):
+    """Evaluate the network on the entire test set."""
+    criterion = torch.nn.CrossEntropyLoss()
+    correct, total, loss = 0, 0, 0.0
+    net.eval()
+    with torch.no_grad():
+        for images, labels in testloader:
+            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            outputs = net(images)
+            loss += criterion(outputs, labels).item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    loss /= len(testloader.dataset)
+    accuracy = correct / total
+    return loss, accuracy

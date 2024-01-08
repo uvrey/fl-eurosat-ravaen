@@ -12,7 +12,7 @@ config_fit:
 name: VAE_128small
 dataset:
   data_module_name: alpha_multiscene
-  root_folder: /home/lucap/l46/l46-project/FedRaVAEn-master/data/train_minisubset
+  root_folder: /home/josie/l46/l46-project/FedRaVAEn-master/data/train_minisubset
   window_size:
   - 32
   - 32
@@ -259,5 +259,5 @@ channels:
   - 2
   - 1
   - 0
-log_dir: /home/lucap/l46/l46-project/FedRaVAEn-master/outputs/results
-cache_dir: /home/lucap/l46/l46-project/FedRaVAEn-master/outputs/cache
+log_dir: /home/josie/l46/l46-project/FedRaVAEn-master/outputs/results
+cache_dir: /home/josie/l46/l46-project/FedRaVAEn-master/outputs/cache

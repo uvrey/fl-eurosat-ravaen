@@ -42,7 +42,7 @@ specific folder, in particular `root_folder/folder_path` (see arguments).
 The images can be filtered, normalised (see below for both) and queried through
 a window from a tiling strategy class with the `get_datum` method.
 
-Filters and normalisers are instatiated dynamically trhough the name of their
+Filters and normalisers are instatiated dynamically through the name of their
 class and the args they needed.
 
 #### Image filtering

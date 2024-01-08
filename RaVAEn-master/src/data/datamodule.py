@@ -1,4 +1,4 @@
-import pickle
+import dill
 from pathlib import Path
 
 from typing import List, Dict
@@ -154,17 +154,17 @@ class ParsedDataModule(LightningDataModule):
         savepath = Path(cache_dir) / 'datamodules' / dataset_name
         if savepath.exists():
             with open(savepath, 'rb') as file:
-                return pickle.load(file)
+                return dill.load(file)
         return None
 
     def save(self, cache_dir, overwrite=False):
         savepath = Path(cache_dir) / 'datamodules'
         savepath.mkdir(exist_ok=True, parents=True)
 
-        savepath /= self.data_module_name
-        if not savepath.exists() or (savepath.exists() and overwrite):
-            with open(savepath, 'wb') as file:
-                pickle.dump(self, file)
+        savefile = savepath / self.data_module_name
+        if not savefile.exists() or (savefile.exists() and overwrite):
+            with open(savefile, 'wb') as file:
+                dill.dump(self, file)
         else:
             print(f'Datamodule {self.data_module_name} already in cache, not saving')
 

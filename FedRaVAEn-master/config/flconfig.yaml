@@ -20,5 +20,5 @@ module: deeper_vae
 normalisation: log_scale
 channels: high_res
 
-log_dir: "/home/lucap/l46/l46-project/FedRaVAEn-master/outputs/results"
-cache_dir: "/home/lucap/l46/l46-project/FedRaVAEn-master/outputs/cache"
+log_dir: "/home/josie/l46/l46-project/FedRaVAEn-master/outputs/results"
+cache_dir: "/home/josie/l46/l46-project/FedRaVAEn-master/outputs/cache"
