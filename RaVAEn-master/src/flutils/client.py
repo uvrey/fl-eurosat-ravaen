@@ -12,7 +12,10 @@ from torchvision.datasets import CIFAR10
 from typing import List, Any, Dict, Tuple
 
 import flwr as fl
-
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from tqdm import tqdm
 from collections import OrderedDict
 
 from pytorch_lightning import loggers
@@ -44,11 +47,12 @@ print(
 )
 
 class RaVAENClient(fl.client.NumPyClient):
-    def __init__(self, cid, model, trainloader, valloader):
+    def __init__(self, cid, model, trainloader, valloader, cfg_train):
         self.cid = cid
         self.net = model
         self.trainloader = trainloader
         self.valloader = valloader
+        self.cfg_train = cfg_train
 
     def get_parameters(self, config):
         print(f"[Client {self.cid}] get_parameters")
@@ -56,9 +60,32 @@ class RaVAENClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         print(f"[Client {self.cid}] fit, config: {config}")
+        # set_parameters(self.net, parameters)
+        # train(self.net, self.trainloader, epochs=1)
+        # return get_parameters(self.net), len(self.trainloader), {}
         set_parameters(self.net, parameters)
-        train(self.net, self.trainloader, epochs=1)
+        
+        # TODO: Check correctness   
+        trainer = pl.Trainer(
+            deterministic=True,
+            # gpus=self.cfg_train['gpus'], # TODO would need to check if available
+            profiler='simple',
+            cpus=-1,
+            max_epochs=self.cfg_train['epochs'],
+            accumulate_grad_batches=self.cfg_train['grad_batches'],
+            accelerator=self.cfg_train.get('distr_backend'),
+            precision=16 if self.cfg_train['use_amp'] else 32,
+            auto_scale_batch_size=self.cfg_train.get('auto_batch_size'),
+            auto_lr_find=self.cfg_train.get('auto_lr', False),
+            check_val_every_n_epoch=self.cfg_train.get('check_val_every_n_epoch', 10),
+            reload_dataloaders_every_epoch=False,
+            fast_dev_run=self.cfg_train['fast_dev_run'],
+            resume_from_checkpoint=self.cfg_train.get('from_checkpoint')
+        )
+        
+        trainer.fit(self.model, self.train_loader, self.val_loader)
         return get_parameters(self.net), len(self.trainloader), {}
+        # return self.get_parameters(self.cfg_train), len(self.trainloader), {}
 
     def evaluate(self, parameters, config):
         print(f"[Client {self.cid}] evaluate, config: {config}")
@@ -66,13 +93,14 @@ class RaVAENClient(fl.client.NumPyClient):
         loss, accuracy = test(self.net, self.valloader)
         return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
-def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_channels, fl_config):
+def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_channels, cfg_train):
     def client_fn(cid: str) -> RaVAENClient:
         model = SimpleVAEModel(input_shape, latent_dim, vis_channels).to(DEVICE)
         return RaVAENClient(cid = cid,
                     model = model,
                     trainloader=trainloaders[int(cid)], 
                     valloader=valloaders[int(cid)], 
+                    cfg_train = cfg_train
                     )
     return client_fn
 
@@ -245,25 +273,45 @@ def set_parameters(net, parameters: List[np.ndarray]):
 
 def train(net, trainloader, epochs: int):
     """Train the network on the training set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters())
+    # TODO replace this with an appropriate training function (ie. FROM RAEVEN!)
+
+    criterion = nn.MSELoss()  # Use Mean Squared Error as the reconstruction loss
+    optimizer = optim.Adam(net.parameters())
     net.train()
+
     for epoch in range(epochs):
-        correct, total, epoch_loss = 0, 0, 0.0
-        for images, labels in trainloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
+        epoch_loss = 0, 0, 0.0
+        for images in tqdm(trainloader):
+            images = torch.tensor(images)
             optimizer.zero_grad()
-            outputs = net(images)
-            loss = criterion(net(images), labels)
+            reconstructed_images = net(images)
+            loss = criterion(reconstructed_images, images)  # Reconstruction loss
             loss.backward()
             optimizer.step()
-            # Metrics
-            epoch_loss += loss
-            total += labels.size(0)
-            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+            epoch_loss += loss.item()
+
         epoch_loss /= len(trainloader.dataset)
-        epoch_acc = correct / total
-        print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
+        print(f"Epoch {epoch + 1}: train loss {epoch_loss}")
+
+    # criterion = torch.nn.CrossEntropyLoss()
+    # optimizer = torch.optim.Adam(net.parameters())
+    # net.train()
+    # for epoch in range(epochs):
+    #     correct, total, epoch_loss = 0, 0, 0.0
+    #     for images in trainloader:
+    #         images= images.to(DEVICE)
+    #         optimizer.zero_grad()
+    #         outputs = net(images)
+    #         loss = criterion(net(images), labels)
+    #         loss.backward()
+    #         optimizer.step()
+    #         # Metrics
+    #         epoch_loss += loss
+    #         total += labels.size(0)
+    #         correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+    #     epoch_loss /= len(trainloader.dataset)
+    #     epoch_acc = correct / total
+    #     print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
 
 
 def test(net, testloader):

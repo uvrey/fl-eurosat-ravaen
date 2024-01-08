@@ -126,7 +126,7 @@ def main(flcfg: DictConfig):
         config=fl.server.ServerConfig(num_rounds=3),  # Just three rounds
         strategy=strategy,
         client_resources=client_resources,
-        ray_init_args =  {'num_cpus': 8, 'num_gpus': 1, "runtime_env": runtime_env}
+        ray_init_args =  {'num_cpus': 8, 'num_gpus': 0, "runtime_env": runtime_env}
     )
     print("Success!")
     # """

@@ -80,7 +80,6 @@ class Module(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-
         optims = []
         scheds = []
 
