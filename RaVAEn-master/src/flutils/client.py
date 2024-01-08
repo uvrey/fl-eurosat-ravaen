@@ -110,7 +110,7 @@ class RaVAENClient(fl.client.NumPyClient):
         print(f"[Client {self.cid}] evaluate, config: {config}")
         set_parameters(self.net, parameters)
         loss = test(self.net, self.valloader)
-        return float(loss), len(self.valloader)
+        return float(loss), len(self.valloader), {}
 
 def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_channels, cfg_train):
     def client_fn(cid: str) -> RaVAENClient:
@@ -318,14 +318,14 @@ def train(net, trainloader, epochs: int):
 
 def test(net, testloader):
     """Evaluate the network on the entire test set."""
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = nn.MSELoss() 
     loss = 0.0
     net.eval()
     with torch.no_grad():
         for batch in testloader:
             images = batch[0]
-            outputs = net(images)[0]
-            loss += criterion(outputs).item()
-            _, predicted = torch.max(outputs.data, 1)
+            reconstructed_images = net(images)[0]
+            loss += criterion(reconstructed_images, images).item()
+            # _, predicted = torch.max(outputs.data, 1)
     loss /= len(testloader.dataset)
     return loss
