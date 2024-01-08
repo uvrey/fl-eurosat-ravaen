@@ -70,11 +70,10 @@ class RaVAENClient(fl.client.NumPyClient):
             deterministic=True,
             # gpus=self.cfg_train['gpus'], # TODO would need to check if available
             profiler='simple',
-            cpus=-1,
             max_epochs=self.cfg_train['epochs'],
             accumulate_grad_batches=self.cfg_train['grad_batches'],
             accelerator=self.cfg_train.get('distr_backend'),
-            precision=16 if self.cfg_train['use_amp'] else 32,
+            # precision=16 if self.cfg_train['use_amp'] else 32, # TODO add back as this is GPU specific 
             auto_scale_batch_size=self.cfg_train.get('auto_batch_size'),
             auto_lr_find=self.cfg_train.get('auto_lr', False),
             check_val_every_n_epoch=self.cfg_train.get('check_val_every_n_epoch', 10),
@@ -83,7 +82,7 @@ class RaVAENClient(fl.client.NumPyClient):
             resume_from_checkpoint=self.cfg_train.get('from_checkpoint')
         )
         
-        trainer.fit(self.model, self.train_loader, self.val_loader)
+        trainer.fit(self.net, self.train_loader, self.val_loader)
         return get_parameters(self.net), len(self.trainloader), {}
         # return self.get_parameters(self.cfg_train), len(self.trainloader), {}
 
