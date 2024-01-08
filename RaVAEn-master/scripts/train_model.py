@@ -39,46 +39,46 @@ def main(cfg):
     print(f"Training set length: {len(training_set)}")
     print(f"Test set length: {len(test_set)}")
     
-    #print("\nFirst element in training set: ")
-    #print(training_set[0][0].size())
+    print("\nFirst element in training set: ")
+    print(training_set[0][0].size())
 
-    # callbacks = [
-    #     VisualisationCallback(),
-    #     LearningRateMonitor(),
-    #     ModelCheckpoint(
-    #         save_last=True,
-    #         save_top_k=-1,  # -1 keeps all, # << 0 keeps only last ....
-    #         filename='epoch_{epoch:02d}-step_{step}',
-    #         auto_insert_metric_name=False)
-    # ]
+    callbacks = [
+        VisualisationCallback(),
+        LearningRateMonitor(),
+        ModelCheckpoint(
+            save_last=True,
+            save_top_k=-1,  # -1 keeps all, # << 0 keeps only last ....
+            filename='epoch_{epoch:02d}-step_{step}',
+            auto_insert_metric_name=False)
+    ]
 
-    # plugins = []
-    # if cfg_train.get('distr_backend') == 'ddp':
-    #     plugins.append(DDPPlugin(find_unused_parameters=False))
+    plugins = []
+    if cfg_train.get('distr_backend') == 'ddp':
+        plugins.append(DDPPlugin(find_unused_parameters=False))
 
-    # trainer = Trainer(
-    #     deterministic=True,
-    #     gpus=cfg_train['gpus'],
-    #     logger=logger,
-    #     callbacks=callbacks,
-    #     plugins=plugins,
-    #     profiler='simple',
-    #     max_epochs=cfg_train['epochs'],
-    #     accumulate_grad_batches=cfg_train['grad_batches'],
-    #     accelerator=cfg_train.get('distr_backend'),
-    #     precision=16 if cfg_train['use_amp'] else 32,
-    #     auto_scale_batch_size=cfg_train.get('auto_batch_size'),
-    #     auto_lr_find=cfg_train.get('auto_lr', False),
-    #     check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 10),
-    #     reload_dataloaders_every_epoch=False,
-    #     fast_dev_run=cfg_train['fast_dev_run'],
-    #     resume_from_checkpoint=cfg_train.get('from_checkpoint'),
-    #     #check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 1) # line repeated?
-    # )
+    trainer = Trainer(
+        deterministic=True,
+        gpus=cfg_train['gpus'],
+        logger=logger,
+        callbacks=callbacks,
+        plugins=plugins,
+        profiler='simple',
+        max_epochs=cfg_train['epochs'],
+        accumulate_grad_batches=cfg_train['grad_batches'],
+        accelerator=cfg_train.get('distr_backend'),
+        precision=16 if cfg_train['use_amp'] else 32,
+        auto_scale_batch_size=cfg_train.get('auto_batch_size'),
+        auto_lr_find=cfg_train.get('auto_lr', False),
+        check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 10),
+        reload_dataloaders_every_epoch=False,
+        fast_dev_run=cfg_train['fast_dev_run'],
+        resume_from_checkpoint=cfg_train.get('from_checkpoint'),
+        #check_val_every_n_epoch=cfg_train.get('check_val_every_n_epoch', 1) # line repeated?
+    )
 
-    #trainer.tune(module, datamodule=data_module)
+    trainer.tune(module, datamodule=data_module)
 
-    #trainer.fit(module, data_module)
+    trainer.fit(module, data_module)
 
 
 if __name__ == '__main__':

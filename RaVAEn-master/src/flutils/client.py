@@ -10,6 +10,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import CIFAR10
 from typing import List, Any, Dict, Tuple
+import importlib
+import omegaconf
 
 import flwr as fl
 import torch
@@ -18,7 +20,7 @@ import torch.optim as optim
 from tqdm import tqdm
 from collections import OrderedDict
 
-from pytorch_lightning import loggers
+from pytorch_lightning import loggers, LightningModule
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
@@ -46,6 +48,24 @@ print(
     f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}"
 )
 
+def load_obj(obj_path):
+    """
+    Call an object from a string
+    """
+
+    obj_path_list = obj_path.rsplit(".", 1)
+    obj_path = obj_path_list.pop(0)
+    
+    print(f"Object path: {obj_path}")
+    
+    obj_name = obj_path_list[0]
+    module_obj = importlib.import_module(obj_path)
+    if not hasattr(module_obj, obj_name):
+        raise AttributeError(
+            f"Object '{obj_name}' cannot be loaded from '{obj_path}'."
+        )
+    return getattr(module_obj, obj_name)
+
 class RaVAENClient(fl.client.NumPyClient):
     def __init__(self, cid, model, trainloader, valloader, cfg_train):
         self.cid = cid
@@ -60,37 +80,37 @@ class RaVAENClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         print(f"[Client {self.cid}] fit, config: {config}")
-        # set_parameters(self.net, parameters)
-        # train(self.net, self.trainloader, epochs=1)
-        # return get_parameters(self.net), len(self.trainloader), {}
         set_parameters(self.net, parameters)
-        
-        # TODO: Check correctness   
-        trainer = pl.Trainer(
-            deterministic=True,
-            # gpus=self.cfg_train['gpus'], # TODO would need to check if available
-            profiler='simple',
-            max_epochs=self.cfg_train['epochs'],
-            accumulate_grad_batches=self.cfg_train['grad_batches'],
-            accelerator=self.cfg_train.get('distr_backend'),
-            # precision=16 if self.cfg_train['use_amp'] else 32, # TODO add back as this is GPU specific 
-            auto_scale_batch_size=self.cfg_train.get('auto_batch_size'),
-            auto_lr_find=self.cfg_train.get('auto_lr', False),
-            check_val_every_n_epoch=self.cfg_train.get('check_val_every_n_epoch', 10),
-            reload_dataloaders_every_epoch=False,
-            fast_dev_run=self.cfg_train['fast_dev_run'],
-            resume_from_checkpoint=self.cfg_train.get('from_checkpoint')
-        )
-        
-        trainer.fit(self.net, self.train_loader, self.val_loader)
+        train(self.net, self.trainloader, epochs=1)
         return get_parameters(self.net), len(self.trainloader), {}
+        # set_parameters(self.net, parameters)
+        
+        # # TODO: FIX. Option 1 - use a trainer. Otherwise, define training function   
+        # trainer = pl.Trainer(
+        #     deterministic=True,
+        #     # gpus=self.cfg_train['gpus'], # TODO would need to check if available
+        #     profiler='simple',
+        #     max_epochs=self.cfg_train['epochs'],
+        #     accumulate_grad_batches=self.cfg_train['grad_batches'],
+        #     accelerator=self.cfg_train.get('distr_backend'),
+        #     # precision=16 if self.cfg_train['use_amp'] else 32, # TODO add back as this is GPU specific 
+        #     auto_scale_batch_size=self.cfg_train.get('auto_batch_size'),
+        #     auto_lr_find=self.cfg_train.get('auto_lr', False),
+        #     check_val_every_n_epoch=self.cfg_train.get('check_val_every_n_epoch', 10),
+        #     reload_dataloaders_every_epoch=False,
+        #     fast_dev_run=self.cfg_train['fast_dev_run'],
+        #     resume_from_checkpoint=self.cfg_train.get('from_checkpoint')
+        # )
+        
+        # trainer.fit(self.net, self.trainloader, self.valloader)
+        # return get_parameters(self.net), len(self.trainloader), {}
         # return self.get_parameters(self.cfg_train), len(self.trainloader), {}
 
     def evaluate(self, parameters, config):
         print(f"[Client {self.cid}] evaluate, config: {config}")
         set_parameters(self.net, parameters)
-        loss, accuracy = test(self.net, self.valloader)
-        return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
+        loss = test(self.net, self.valloader)
+        return float(loss), len(self.valloader)
 
 def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_channels, cfg_train):
     def client_fn(cid: str) -> RaVAENClient:
@@ -103,6 +123,7 @@ def generate_client_fn(trainloaders, valloaders, input_shape, latent_dim, vis_ch
                     )
     return client_fn
 
+# TODO change back to nn.Module potentially 
 class SimpleVAEModel(nn.Module):
     def __init__(self,
                  input_shape: Tuple[int],
@@ -113,7 +134,8 @@ class SimpleVAEModel(nn.Module):
 
         self.latent_dim = latent_dim
         self.visualisation_channels = visualisation_channels # maybe specific to ravaen dataset TODO
-        
+        self.input_shape = input_shape
+
         # Reconstructing things, so in and out channels should be the same
         in_channels = input_shape[0]
         out_channels = input_shape[0]
@@ -154,6 +176,7 @@ class SimpleVAEModel(nn.Module):
         :param input: (Tensor) Input tensor to encoder [N x C x H x W]
         :return: (Tensor) List of latent codes
         """
+
         result = self.encoder(input)
         result = torch.flatten(result, start_dim=1)
 
@@ -176,6 +199,7 @@ class SimpleVAEModel(nn.Module):
         result = self.decoder(result)
         return result
 
+    # TODO Problem - inputs are list instead of Tensors
     def forward(self, input: Tensor, **kwargs) -> List[Tensor]:
         mu, log_var = self.encode(torch.nan_to_num(input))
         z = self.reparameterize(mu, log_var)
@@ -260,8 +284,9 @@ class SimpleVAEModel(nn.Module):
     @property
     def _visualisation_labels(self):
         return ["Input", "Reconstruction", "Rec error"]
-    
 
+
+## FUNCTIONS 
 def get_parameters(net) -> List[np.ndarray]:
     return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
@@ -273,17 +298,16 @@ def set_parameters(net, parameters: List[np.ndarray]):
 def train(net, trainloader, epochs: int):
     """Train the network on the training set."""
     # TODO replace this with an appropriate training function (ie. FROM RAEVEN!)
-
     criterion = nn.MSELoss()  # Use Mean Squared Error as the reconstruction loss
     optimizer = optim.Adam(net.parameters())
     net.train()
 
     for epoch in range(epochs):
-        epoch_loss = 0, 0, 0.0
-        for images in tqdm(trainloader):
-            images = torch.tensor(images)
+        epoch_loss = 0.0
+        for batch in tqdm(trainloader):
+            images = batch[0] # from observation
             optimizer.zero_grad()
-            reconstructed_images = net(images)
+            reconstructed_images = net(images)[0] # returns List[reconstr_img, mu, var]
             loss = criterion(reconstructed_images, images)  # Reconstruction loss
             loss.backward()
             optimizer.step()
@@ -292,40 +316,16 @@ def train(net, trainloader, epochs: int):
         epoch_loss /= len(trainloader.dataset)
         print(f"Epoch {epoch + 1}: train loss {epoch_loss}")
 
-    # criterion = torch.nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam(net.parameters())
-    # net.train()
-    # for epoch in range(epochs):
-    #     correct, total, epoch_loss = 0, 0, 0.0
-    #     for images in trainloader:
-    #         images= images.to(DEVICE)
-    #         optimizer.zero_grad()
-    #         outputs = net(images)
-    #         loss = criterion(net(images), labels)
-    #         loss.backward()
-    #         optimizer.step()
-    #         # Metrics
-    #         epoch_loss += loss
-    #         total += labels.size(0)
-    #         correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
-    #     epoch_loss /= len(trainloader.dataset)
-    #     epoch_acc = correct / total
-    #     print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
-
-
 def test(net, testloader):
     """Evaluate the network on the entire test set."""
     criterion = torch.nn.CrossEntropyLoss()
-    correct, total, loss = 0, 0, 0.0
+    loss = 0.0
     net.eval()
     with torch.no_grad():
-        for images, labels in testloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            outputs = net(images)
-            loss += criterion(outputs, labels).item()
+        for batch in testloader:
+            images = batch[0]
+            outputs = net(images)[0]
+            loss += criterion(outputs).item()
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
     loss /= len(testloader.dataset)
-    accuracy = correct / total
-    return loss, accuracy
+    return loss

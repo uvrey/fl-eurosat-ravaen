@@ -6,7 +6,6 @@ def load_obj(obj_path):
     """
     Call an object from a string
     """
-
     obj_path_list = obj_path.rsplit(".", 1)
     obj_path = obj_path_list.pop(0)
 
