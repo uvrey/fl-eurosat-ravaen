@@ -45,7 +45,7 @@ This project was developed by Luca Powell (LP647) and Josephine Rey (JMR239) as 
 | Week 5 | January 9 - 15      | Complete experiments, finalise report, devise figures, prepare repo for submission and proofread. | Submit report & code. |
 
 ### Task Allocation
-In this project, we leveraged pair programming extensively to 1) investigate and understand the codebases and libraries which are the subject of this work, 2) draft and compile our report and 3) implement the federated systems. A more detailed overview of our task allocation is noted below, and we feel that this division of effort was evenly split throughout the project. 
+In this project, we leveraged pair programming extensively to 1) investigate and understand the codebases and libraries which are the subject of this work, 2) draft and compile our report and 3) implement the federated simulation pipelines. A more detailed overview of our task allocation is noted below, and we feel that this division of effort was evenly split throughout the project. 
 
 #### Shared tasks:
 - Devise experiment list and conduct experiments on local machines
