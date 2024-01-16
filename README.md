@@ -1,4 +1,4 @@
-# Federated learning for data classification and change detection on-board satellite constellations
+# Federated learning for classification and change detection on-board satellite constellations
 ![smaller banner](https://github.com/uvrey/l46-project/assets/77244149/f6a74985-b9cd-4377-af35-4ef2491c096d)
 
 ## Overview
