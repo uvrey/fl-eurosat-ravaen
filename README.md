@@ -4,7 +4,9 @@
 ## Overview
 This project is presented in partial fulfilment of the requirements for L46: Principles of Machine Learning Systems. 
 
-We explore several constraints associated with nanosatellite constellations by simulating a federated learning system on the EuroSAT dataset \cite{helber2018eurosat, helber2019eurosat}. In best conditions, an overall accuracy of 97.1\% was achieved, 1.7\% below the baseline. The most significant performance-affecting constraint is the iid-ness of the partitioned data, followed by the availability of concurrent clients. In the interest of investigating a real-world application of FL following this initial benchmarking process, we investigate the feasibility of federating RaVAEn, a SoTA system for unsupervised change detection on-board satellite constellations on the RAEVEN dataset for change detection from on-board satellite data.
+We explore several constraints associated with nanosatellite constellations by simulating a federated learning system on the EuroSAT dataset. In best conditions, an overall accuracy of 97.1\% was achieved, 1.7\% below the baseline. The most significant performance-affecting constraint is the iid-ness of the partitioned data, followed by the availability of concurrent clients. 
+
+In the interest of investigating a real-world application of FL following this initial benchmarking process, we investigate the feasibility of federating RaVAEn, a SoTA system for unsupervised change detection on-board satellite constellations on the RAEVEN dataset for change detection from on-board satellite data.
 
 The contributions of this work are as follows:
 
