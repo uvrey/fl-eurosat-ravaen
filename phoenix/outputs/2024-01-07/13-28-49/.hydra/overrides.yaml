@@ -1,8 +1,0 @@
-- +dataset=alpha_multiscene_tiny
-- ++dataset.root_folder=/home/lucap/l46/l46-project/RaVAEn-master/notebooks/train_minisubset
-- +training=simple_vae
-- +module=deeper_vae
-- +normalisation=log_scale
-- +channels=high_res
-- +name=VAE_128small
-- module.model_cls_args.latent_dim=128
