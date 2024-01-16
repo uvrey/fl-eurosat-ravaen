@@ -1,5 +1,5 @@
 # Federated learning for data classification and change detection on-board satellite constellations
-![smaller banner](https://github.com/uvrey/l46-project/assets/77244149/fba6d46e-3108-456e-9c94-d8acf2315951)
+![smaller banner](https://github.com/uvrey/l46-project/assets/77244149/f6a74985-b9cd-4377-af35-4ef2491c096d)
 
 ## Overview
 This project is presented in partial fulfilment of the requirements for L46: Principles of Machine Learning Systems. 
@@ -17,10 +17,10 @@ The contributions of this work are as follows:
 The code may be compiled and executed for each element of this work as follows.
 
 ### EuroSAT
-
+Navigate to the `EuroSAT` folder and launch the `EuroSAT_fl_notebook.ipynb` using `jupyter notebook`. 
 
 ### RaVAEn
- Navigate to the `RaVAEn` folder and initialise its setup as follows:
+Navigate to the `RaVAEn` folder and initialise its setup as follows:
 
 ```bash
 # This will create a ravaen_env conda environment:
@@ -32,7 +32,6 @@ jupyter notebook
 # This will open an interactive notebook in your browser where you can navigate to the federated learning demo (fl_demo) and initialise this process. 
 ```
 
-
 ## Contributors
 This project was developed by Luca Powell (LP647) and Josephine Rey (JMR239) as part of the MPhil in Advanced Computer Science programme, University of Cambridge, 2023. 
 
@@ -43,21 +42,25 @@ This project was developed by Luca Powell (LP647) and Josephine Rey (JMR239) as 
 | Week 2 | December 19 - 25    | Read literature, create Miro board for detailed planning, set up GitHub repo, Colab training environment and report outline.   | Task allocation and project milestones.   |
 | Week 3 | December 26 - January 1 | Prepare literature review, introduction and abstract. Investigate RAEven model files and devise strategy for feeding to Flower. | Experiment selection and risk mitigation strategy |
 | Week 4 | January 2 - 8       | Intensify development efforts, begin experiments. Iteratively report on findings and incorporate within report. | Revised experiment selection |
-| Week 5 | January 9 - 15      | Complete experiments, finalise report, devise figures and proofread. | Submission pipeline. |
+| Week 5 | January 9 - 15      | Complete experiments, finalise report, devise figures, prepare repo for submission and proofread. | Submit report & code. |
 
 ### Task Allocation
-#### JR:
-- **Report contributions**: Introduction, abstract and literature review
-- Conduct and report on FedRAEven experiments
-- Proof reading and editing
-- Figures and tables
-
-#### LP: 
-- **Report contributions**:  Implementation and methods
-- Implement FedRAEven
+In this project, we leveraged pair programming extensively to 1) investigate and understand the codebases and libraries which are the subject of this work, 2) draft and compile our report and 3) implement the federated systems. A more detailed overview of our task allocation is noted below, and we feel that this division of effort was evenly split throughout the project. 
 
 #### Shared tasks:
-- Determine experiment list
-- Training and federation set-up on machines
-- **Report contributions:** Results, discussion, conclusion
+- Devise experiment list and conduct experiments on local machines
+- Training and federation set-up on machines + implementation of FL 
+- **Report contributions** were drafted and iterated upon in a collaborative manner
+
+#### JMR239:
+- Investigate and implement the federation of RaVAEen's training pipeline
+- Proof reading (grammar, layout)
+- GitHub / documentation
+
+#### LP647: 
+- Investigate and implement the federation of EuroSAT classification
+- Proof reading (technical correctness)
+- Tables / figures
+
+
 
