@@ -1,5 +1,5 @@
 # Federated learning for data classification and change detection on-board satellite constellations
-![smaller banner](https://github.com/uvrey/l46-project/assets/77244149/e29122f1-d26c-47a3-944b-5bdfc6bbdf22)
+![smaller banner](https://github.com/uvrey/l46-project/assets/77244149/454a6499-9c65-4c29-b898-c69b40af2ba6)
 
 ## Overview
 This project is presented in partial fulfilment of the requirements for L46: Principles of Machine Learning Systems. 
