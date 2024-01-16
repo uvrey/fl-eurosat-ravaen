@@ -11,7 +11,7 @@ In the interest of investigating a real-world application of FL following this i
 The contributions of this work are as follows:
 
 - We discuss three experiments to evaluate FL with the use case of classifying the EuroSAT dataset, which include exploring the effect of varying IID-ness and numbers of clients.
-- We provide an initial `proof of concept' for the feasibility of federated learning on an aspect of the RaVAEn system (namely, a `SimpleVAE` training pipeline), employing a subset of the original project's associated dataset. 
+- We provide an initial 'proof of concept' for the feasibility of federated learning on an aspect of the RaVAEn system (namely, a `SimpleVAE` training pipeline). To this end, we employ a subset of the original RaVAEn system's associated dataset. 
 
 ## Set-up and Installation
 The code may be compiled and executed for each element of this work as follows.
