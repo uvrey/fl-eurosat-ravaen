@@ -40,7 +40,7 @@ This project was developed by Luca Powell (LP647) and Josephine Rey (JMR239) as 
 | ------ | ------------------- | --------- | --------- |
 | Week 1 | December 12 - 18    | Compile reading list, assess literature, propose project ideas.  | Project topic          |
 | Week 2 | December 19 - 25    | Read literature, create Miro board for detailed planning, set up GitHub repo, Colab training environment and report outline.   | Task allocation and project milestones.   |
-| Week 3 | December 26 - January 1 | Prepare literature review, introduction and abstract. Investigate RAEven model files and devise strategy for feeding to Flower. | Experiment selection and risk mitigation strategy |
+| Week 3 | December 26 - January 1 | Prepare literature review, introduction and abstract. Set up EuroSAT dataset. Investigate RaVAEn system and devise strategy for developing federated projects with Flower. | Experiment selection and risk mitigation strategy |
 | Week 4 | January 2 - 8       | Intensify development efforts, begin experiments. Iteratively report on findings and incorporate within report. | Revised experiment selection |
 | Week 5 | January 9 - 15      | Complete experiments, finalise report, devise figures, prepare repo for submission and proofread. | Submit report & code. |
 
